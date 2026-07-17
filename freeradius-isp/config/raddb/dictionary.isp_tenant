@@ -1,0 +1,9 @@
+# Local/site-specific attributes for tenant resolution. Uses the local
+# private attribute number space (>= 3000) reserved by convention so this
+# never collides with a real vendor dictionary.
+#
+# $INCLUDE'd into the main `dictionary` file by scripts/install_ubuntu.sh.
+
+ATTRIBUTE	ISP-Tenant-Id		3000	integer
+ATTRIBUTE	ISP-Tenant-Slug		3001	string
+ATTRIBUTE	ISP-Tenant-Status	3002	string

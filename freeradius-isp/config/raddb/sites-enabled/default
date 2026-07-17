@@ -1,0 +1,117 @@
+# Customized copy of the stock FreeRADIUS 3.2 "default" virtual server.
+# Trimmed to what Mikrotik PPPoE/Hotspot (PAP/CHAP/MS-CHAPv2) actually needs —
+# EAP and digest (SIP) are dropped rather than left in half-configured.
+#
+# The one thing added at three separate points is `isp_tenant_resolve`
+# (policy.d/isp_tenant): authorize, accounting, and post-auth each touch a
+# tenant-scoped SQL table, so each needs the tenant resolved independently —
+# these are separate RADIUS requests, control-list state does not carry over.
+
+server default {
+
+listen {
+	type = auth
+	ipaddr = *
+	port = 0
+	limit {
+		max_connections = 16
+		lifetime = 0
+		idle_timeout = 30
+	}
+}
+
+listen {
+	ipaddr = *
+	port = 0
+	type = acct
+	limit {
+	}
+}
+
+authorize {
+	filter_username
+	preprocess
+
+	# Resolve tenant from the matched NAS's Client-IP-Address BEFORE any
+	# tenant-scoped table (radcheck/radreply/radusergroup via -sql) is
+	# queried. Rejects immediately if the source NAS has no tenant mapping.
+	isp_tenant_resolve
+
+	# New logins only — a suspended tenant's already-open sessions still
+	# need to close out normally via accounting (see policy.d/isp_tenant).
+	isp_tenant_check_active
+
+	chap
+	mschap
+
+	files
+	-sql
+	expiration
+	logintime
+	pap
+}
+
+authenticate {
+	Auth-Type PAP {
+		pap
+	}
+	Auth-Type CHAP {
+		chap
+	}
+	Auth-Type MS-CHAP {
+		mschap
+	}
+}
+
+preacct {
+	preprocess
+	acct_unique
+	files
+}
+
+accounting {
+	# Same reasoning as authorize: accounting requests are independent
+	# packets and need their own tenant resolution before the -sql insert.
+	isp_tenant_resolve
+
+	detail
+	unix
+	-sql
+	exec
+	attr_filter.accounting_response
+}
+
+session {
+	radutmp
+}
+
+post-auth {
+	update {
+		&reply: += &session-state:
+	}
+
+	# radpostauth (via -sql below) also carries tenant_id, so resolve here
+	# too — post-auth runs after authenticate, in the same request, but the
+	# control list is not guaranteed to still hold what authorize set.
+	isp_tenant_resolve
+
+	# This top-level body only runs on Access-Accept (Post-Auth-Type REJECT
+	# below is what runs on reject) — exactly the "first successful login"
+	# moment a voucher should be marked redeemed.
+	isp_voucher_mark_redeemed
+
+	-sql
+	exec
+	Post-Auth-Type REJECT {
+		-sql
+		attr_filter.access_reject
+	}
+}
+
+pre-proxy {
+}
+
+post-proxy {
+}
+
+}

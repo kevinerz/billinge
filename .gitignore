@@ -1,0 +1,21 @@
+# Secrets - never commit real credentials
+.env
+!.env.example
+
+# Python / Django
+venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+staticfiles/
+
+# Node / React
+node_modules/
+dist/
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp

@@ -1,0 +1,61 @@
+# Resolves ISP-Tenant-Id from the NAS that the packet actually arrived from.
+#
+# Deliberately uses Client-IP-Address (FreeRADIUS's internal record of which
+# `client { }`/nas entry matched this packet) rather than the NAS-IP-Address
+# *attribute* inside the packet body — the latter is attacker-controllable
+# and must never be trusted for tenant resolution.
+#
+# Called from authorize, accounting, and post-auth in
+# sites-enabled/default — each is a separate request, so this runs
+# independently in all three rather than relying on state set elsewhere.
+#
+# NOTE: policy.d/ files define policies directly at the top level — no
+# outer `policy { }` wrapper. radiusd.conf already $INCLUDEs this directory
+# from within its own policy{} block; adding another wrapper here nests
+# these one level too deep and FreeRADIUS can't find them by name anymore.
+isp_tenant_resolve {
+	update control {
+		&ISP-Tenant-Id := "%{sql: SELECT tenant_id FROM nas WHERE nasname = '%{Client-IP-Address}'}"
+	}
+
+	if (!&control:ISP-Tenant-Id || &control:ISP-Tenant-Id == "") {
+		update reply {
+			&Reply-Message := "Unrecognized NAS - no tenant mapping"
+		}
+		reject
+	}
+
+	# Cheap liveness signal for "is this router even online" — every
+	# request that gets this far (authorize/accounting/post-auth) is
+	# proof the NAS just talked to us. %{sql: ...} runs whatever query
+	# it's given, not just SELECTs; the result is discarded into a
+	# scratch attribute since UPDATE has nothing meaningful to return.
+	update control {
+		&Tmp-Integer-0 := "%{sql: UPDATE nas SET last_contact_at = NOW() WHERE nasname = '%{Client-IP-Address}'}"
+	}
+}
+
+# Gates new logins for a suspended tenant (e.g. platform subscription
+# past due). Deliberately separate from isp_tenant_resolve and called
+# ONLY from authorize, never from accounting/post-auth: a suspended
+# tenant's already-open sessions must still be able to write their
+# Interim-Update/Stop accounting rows, or radacct is left with sessions
+# that never close (which also poisons the Simultaneous-Use check).
+#
+# Checks tenants.status only (trial/active/suspended) — the fast,
+# single-column gate on the RADIUS hot path. tenant_subscriptions'
+# richer billing state (trialing/active/past_due/canceled) is what a
+# future billing engine reads to decide WHEN to flip tenants.status to
+# 'suspended'; RADIUS itself only needs the end result of that decision.
+isp_tenant_check_active {
+	update control {
+		&ISP-Tenant-Status := "%{sql: SELECT status FROM tenants WHERE id = '%{control:ISP-Tenant-Id}'}"
+	}
+
+	if (&control:ISP-Tenant-Status == "suspended") {
+		update reply {
+			&Reply-Message := "Tenant suspended"
+		}
+		reject
+	}
+}

@@ -1,0 +1,51 @@
+# Customized copy of the stock mods-available/sql, pointed at MySQL
+# (a separate server, not this Ubuntu VM) via environment variables. Those
+# variables come from .env at the repo root, injected into this process by
+# systemd's EnvironmentFile= (wired up by scripts/install_ubuntu.sh) — NOT
+# read directly from this file, so nothing here needs to change per-server.
+#
+# Deliberately uses RADIUS_DB_USER/RADIUS_DB_PASSWORD, NOT the general
+# MYSQL_USER/MYSQL_PASSWORD — a least-privilege account provisioned by
+# scripts/provision_db_users.sh with access to RADIUS-core tables only. See
+# docs/architecture.md's data/access security section for why.
+#
+# read_clients + client_table means Mikrotik NAS entries are loaded from the
+# `nas` SQL table instead of static clients.conf stanzas. Known limitation:
+# this loads at startup only — adding/editing a NAS requires a HUP
+# (scripts/reload_freeradius.sh). Phase 3 replaces this with the true
+# per-packet dynamic-clients virtual server for zero-restart onboarding.
+
+sql {
+	driver = "rlm_sql_mysql"
+	dialect = "mysql"
+
+	server = "$ENV{MYSQL_HOST}"
+	port = $ENV{MYSQL_PORT}
+	login = "$ENV{RADIUS_DB_USER}"
+	password = "$ENV{RADIUS_DB_PASSWORD}"
+	radius_db = "$ENV{MYSQL_DATABASE}"
+
+	acct_table1 = "radacct"
+	acct_table2 = "radacct"
+	postauth_table = "radpostauth"
+	authcheck_table = "radcheck"
+	groupcheck_table = "radgroupcheck"
+	authreply_table = "radreply"
+	groupreply_table = "radgroupreply"
+	usergroup_table = "radusergroup"
+
+	read_clients = yes
+	client_table = "nas"
+
+	$INCLUDE ${modconfdir}/${.:name}/main/${dialect}/queries.conf
+
+	pool {
+		start = 5
+		min = 4
+		max = 32
+		spare = 3
+		uses = 0
+		lifetime = 0
+		idle_timeout = 60
+	}
+}

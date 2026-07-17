@@ -1,0 +1,17 @@
+# Marks a hotspot voucher (sql/014_reporting_extras.sql) redeemed on its
+# first successful login — without this, voucher_batches only ever shows
+# how many vouchers were GENERATED, never how many were actually USED.
+#
+# Called only from the accept path of post-auth (never from
+# Post-Auth-Type REJECT) — a failed login must not count as a redemption.
+# Safe to run unconditionally for every subscriber, not just voucher users:
+# the UPDATE only ever matches rows that exist in `vouchers`, so it's a
+# harmless no-op for PPPoE subscribers who were never issued a voucher.
+#
+# NOTE: policy.d/ files define policies directly at the top level — no
+# outer `policy { }` wrapper (see policy.d/isp_tenant for why).
+isp_voucher_mark_redeemed {
+	update control {
+		&Tmp-Integer-0 := "%{sql: UPDATE vouchers SET status = 'active', redeemed_at = NOW() WHERE tenant_id = '%{control:ISP-Tenant-Id}' AND username = '%{SQL-User-Name}' AND redeemed_at IS NULL}"
+	}
+}
