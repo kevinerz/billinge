@@ -14,6 +14,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'tenant-integrations', label: 'Integrasi Tenant', path: '/tenant-integrations', roles: ['super_admin', 'tenant_admin'] },
   { key: 'subscribers', label: 'Pelanggan', path: '/subscribers' },
   { key: 'nas', label: 'NAS / Mikrotik', path: '/nas', roles: ['super_admin', 'tenant_admin'] },
+  { key: 'vpn-hub', label: 'VPN Hub', path: '/vpn-hub', roles: ['super_admin', 'tenant_admin'] },
   {
     key: 'billing',
     label: 'Billing',

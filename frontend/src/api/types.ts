@@ -45,7 +45,7 @@ export interface Tenant {
 export interface TenantIntegration {
   id: number
   tenant: number
-  integration_type: 'payment_gateway' | 'whatsapp' | 'sms' | 'email'
+  integration_type: 'payment_gateway' | 'whatsapp' | 'sms' | 'email' | 'vpn_hub'
   provider: string
   credentials?: Record<string, unknown>
   is_active: boolean

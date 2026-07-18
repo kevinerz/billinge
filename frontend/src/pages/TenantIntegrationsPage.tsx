@@ -11,6 +11,7 @@ const TYPE_OPTIONS = [
   { label: 'WhatsApp', value: 'whatsapp' },
   { label: 'SMS', value: 'sms' },
   { label: 'Email', value: 'email' },
+  { label: 'VPN Hub', value: 'vpn_hub' },
 ]
 
 export function TenantIntegrationsPage() {

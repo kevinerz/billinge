@@ -72,19 +72,33 @@ to each tenant alongside their credentials.
 
 ## Onboarding a tenant
 
+### Option A — from the dashboard (recommended)
+
+The **VPN Hub** page (tenant_admin+, same tier as NAS) generates a random
+password + IPsec PSK, saves them as a `TenantIntegration`
+(`integration_type=vpn_hub`), and immediately renders both scripts below
+with the real values already filled in and a **Copy** button on each —
+nothing to hand-edit. Credentials are `write_only` on the API (same as
+every other integration type and NAS's `secret`), so this is the only
+time they're ever shown; the page warns about that before you navigate
+away. Paste script 1 into the CHR, script 2 into the tenant's Mikrotik.
+
+### Option B — by hand, from the .rsc files in this repo
+
 1. Run `config/chr/add_tenant_vpn_client.rsc` on the CHR, editing the four
    variables at the top (tenant slug, VPN username/password, the fixed
    `10.201.0.x` address to assign — pick the next unused one).
-2. Send the tenant a ready-to-run script for whichever protocol they'll
-   use — **this is the file the tenant actually copies onto their own
-   Mikrotik**, not something to retype by hand:
-   - `config/chr/tenant_client_openvpn.rsc` — recommended default
-   - `config/chr/tenant_client_sstp.rsc` — if their firewall blocks OpenVPN
-   - `config/chr/tenant_client_l2tp.rsc` — third option, needs the IPsec PSK too
+2. Send the tenant a ready-to-run script — **this is the file the tenant
+   actually copies onto their own Mikrotik**, not something to retype by
+   hand:
+   - `config/chr/tenant_client_failover.rsc` — recommended default, all
+     three protocols at once with automatic failover (see below)
+   - `config/chr/tenant_client_openvpn.rsc` / `_sstp.rsc` / `_l2tp.rsc` —
+     single-protocol variants, if a tenant only wants one
 
-   Each file has two (OpenVPN/SSTP) or three (L2TP) `GANTI-...` placeholder
-   variables at the top for the tenant to fill in with the credentials from
-   step 1, then run via `/import file=<the-file>.rsc` on their own router —
+   Each file has `GANTI-...` placeholder variables at the top for the
+   tenant to fill in with the credentials from step 1, then run via
+   `/import file=<the-file>.rsc` on their own router —
    Winbox → Files → upload the `.rsc` (and, for OpenVPN/SSTP, the
    `billinge-ca.crt` from the step above) → Terminal → `/import`. Each
    script prints its own next steps (checking the tunnel connected, then
@@ -102,6 +116,28 @@ address=192.168.38.2 ...` + `/ppp aaa set use-radius=yes` steps as any
 directly-reachable Mikrotik would use (`192.168.38.2` — FreeRADIUS's real
 LAN address — is reachable now purely because of the route the script
 added, not because it's been given any special public-facing address).
+
+## Automatic failover (tenant_client_failover.rsc / dashboard script 2)
+
+This variant dials all three protocols at once and adds one route to
+`192.168.38.0/24` per tunnel, with increasing `distance` (OpenVPN=1,
+SSTP=2, L2TP=3). RouterOS always uses the lowest-distance route whose
+gateway interface is actually up — no monitoring script needed:
+
+- Primary tunnel drops → its route becomes inactive → RouterOS
+  automatically starts using the next-distance route through whichever
+  backup tunnel is still connected.
+- All three `*-client` interfaces keep trying to (re)connect in the
+  background the whole time, regardless of which one is currently
+  carrying traffic — Mikrotik's built-in behavior for these interface
+  types, nothing configured here creates that retry loop.
+- Once the primary tunnel reconnects, its distance-1 route becomes active
+  again automatically — failback is automatic too, not just failover.
+
+Use the single-protocol scripts instead only when a tenant specifically
+wants just one tunnel (e.g. to minimize the number of open connections on
+a constrained device) — otherwise the failover variant is strictly a
+superset of what they do individually.
 
 ## Choosing a protocol
 

@@ -48,6 +48,7 @@ class TenantIntegration(models.Model):
         ('whatsapp', 'WhatsApp'),
         ('sms', 'SMS'),
         ('email', 'Email'),
+        ('vpn_hub', 'VPN Hub'),
     ]
 
     id = models.BigAutoField(primary_key=True)
