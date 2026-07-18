@@ -30,3 +30,25 @@ class Nas(models.Model):
 
     def __str__(self):
         return f'{self.nasname} ({self.tenant.slug})'
+
+
+class NasVpnCredential(models.Model):
+    """Kredensial VPN dial-in per-NAS (tenant yang konek lewat VPN Hub).
+    Tabel terpisah dari `nas` supaya VPN password TIDAK terbaca oleh akun
+    MySQL RADIUS yang cuma punya grant di `nas` — lihat
+    sql/019_nas_vpn_credentials.sql."""
+
+    nas = models.OneToOneField(
+        Nas, primary_key=True, db_column='nas_id', on_delete=models.CASCADE, related_name='vpn',
+    )
+    vpn_username = models.CharField(max_length=64, unique=True)
+    vpn_password = models.CharField(max_length=128)
+    remote_address = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'nas_vpn_credentials'
+        managed = False
+
+    def __str__(self):
+        return f'vpn:{self.vpn_username} -> {self.remote_address}'

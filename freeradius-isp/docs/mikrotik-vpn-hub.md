@@ -72,18 +72,41 @@ to each tenant alongside their credentials.
 
 ## Onboarding a tenant
 
-### Option A — from the dashboard (recommended)
+### Option A — from the NAS page (recommended, fully automatic on the CHR side)
 
-The **VPN Hub** page (tenant_admin+, same tier as NAS) generates a random
-password + IPsec PSK, saves them as a `TenantIntegration`
-(`integration_type=vpn_hub`), and immediately renders both scripts below
-with the real values already filled in and a **Copy** button on each —
-nothing to hand-edit. Credentials are `write_only` on the API (same as
-every other integration type and NAS's `secret`), so this is the only
-time they're ever shown; the page warns about that before you navigate
-away. Paste script 1 into the CHR, script 2 into the tenant's Mikrotik.
+Add the NAS in the dashboard (**NAS / Mikrotik**, tenant_admin+) with the
+**"Konek lewat VPN Hub"** switch on and `nasname` set to the next unused
+`10.201.0.x`. On save, the Django backend connects to the CHR's **RouterOS
+API** (`103.139.163.150:7652`, API-SSL — see `isp-billing/nas/routeros.py`)
+and creates the tenant's PPP secret + fixed `remote-address` itself — no
+CHR-side script to paste. It then shows a modal with the generated VPN
+username, the RADIUS secret, and the **ready-to-paste tenant script** (the
+failover variant, all values filled in) with a **Copy** button. That same
+script is re-copyable later via the **"Copy Script VPN"** action on the
+NAS row.
 
-### Option B — by hand, from the .rsc files in this repo
+Prerequisites (one-time): `config/chr/setup_vpn_server.rsc` has been run on
+the CHR (so the `billinge-vpn` profile + VPN servers exist), and a RouterOS
+API user exists (`/user add name=billinge-api password=... group=full`)
+whose credentials are in the Webserver VM's `.env` as `ROUTEROS_*`. The
+shared `VPN_IPSEC_PSK` in `.env` must match the `ipsecPsk` set in
+`setup_vpn_server.rsc` (the backend renders it into the tenant script).
+
+If the CHR is unreachable when you save, the NAS is **not** created (the
+backend rolls it back) and you get a clear error — no half-provisioned
+state. Deleting the NAS removes the PPP secret from the CHR too
+(best-effort; if the CHR is down at delete time, the NAS is still removed
+and the failure is logged to the audit trail).
+
+Credentials note: the VPN password lives in `nas_vpn_credentials` (a table
+the RADIUS-core DB account has **no** grant on — same isolation as
+`tenant_integrations`) and is embedded in the returned script; the RADIUS
+secret is returned on the NAS record as before.
+
+### Option B — by hand, from the .rsc files in this repo (fallback)
+
+Use this if the RouterOS API isn't set up, or you prefer to provision the
+CHR manually.
 
 1. Run `config/chr/add_tenant_vpn_client.rsc` on the CHR, editing the four
    variables at the top (tenant slug, VPN username/password, the fixed

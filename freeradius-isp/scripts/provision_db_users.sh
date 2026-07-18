@@ -80,10 +80,11 @@ mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_ADMIN_USER" -p"$MYSQL_ROOT_PA
 
 	-- Everything else (platform_*, users, password_resets, audit_logs,
 	-- notifications, tenant_billing_profiles, service_plans,
-	-- voucher_batches, tenant_integrations, and every OTHER column of
-	-- tenant_subscribers besides id/status above) gets NO grant at all —
-	-- not even SELECT. tenant_integrations' live API keys/tokens and every
-	-- subscriber PII field stay completely out of the RADIUS process's reach.
+	-- voucher_batches, tenant_integrations, nas_vpn_credentials, and every
+	-- OTHER column of tenant_subscribers besides id/status above) gets NO
+	-- grant at all — not even SELECT. tenant_integrations' live API
+	-- keys/tokens, nas_vpn_credentials' VPN passwords, and every subscriber
+	-- PII field stay completely out of the RADIUS process's reach.
 
 	FLUSH PRIVILEGES;"
 

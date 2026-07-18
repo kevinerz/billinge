@@ -5,7 +5,6 @@ import { TenantsPage } from './pages/TenantsPage'
 import { TenantIntegrationsPage } from './pages/TenantIntegrationsPage'
 import { SubscribersPage } from './pages/SubscribersPage'
 import { NasPage } from './pages/NasPage'
-import { VpnHubPage } from './pages/VpnHubPage'
 import { PlatformPlansPage } from './pages/billing/PlatformPlansPage'
 import { TenantSubscriptionsPage } from './pages/billing/TenantSubscriptionsPage'
 import { PlatformInvoicesPage } from './pages/billing/PlatformInvoicesPage'
@@ -50,7 +49,6 @@ function App() {
           <Route element={<RoleGuard allow={TENANT_ADMIN_PLUS} />}>
             <Route path="tenant-integrations" element={<TenantIntegrationsPage />} />
             <Route path="nas" element={<NasPage />} />
-            <Route path="vpn-hub" element={<VpnHubPage />} />
             <Route path="vouchers">
               <Route path="batches" element={<VoucherBatchesPage />} />
               <Route path="list" element={<VouchersPage />} />

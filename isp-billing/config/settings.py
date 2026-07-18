@@ -119,3 +119,19 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=1, minute=0),  # 01:00 WIB tiap hari
     },
 }
+
+# VPN Hub / RouterOS API (CHR) — lihat nas/routeros.py. Kredensial di .env,
+# bukan di-commit. Kalau ROUTEROS_USER kosong, provisioning VPN otomatis
+# dimatikan (create NAS biasa tetap jalan, cuma opsi "via VPN" yang gagal).
+ROUTEROS_HOST = os.getenv('ROUTEROS_HOST', '103.139.163.150')
+ROUTEROS_API_PORT = int(os.getenv('ROUTEROS_API_PORT', '7652'))
+ROUTEROS_USER = os.getenv('ROUTEROS_USER', '')
+ROUTEROS_PASSWORD = os.getenv('ROUTEROS_PASSWORD', '')
+ROUTEROS_USE_TLS = os.getenv('ROUTEROS_USE_TLS', 'true').lower() == 'true'
+ROUTEROS_TLS_VERIFY = os.getenv('ROUTEROS_TLS_VERIFY', 'false').lower() == 'true'
+
+VPN_PROFILE = os.getenv('VPN_PROFILE', 'billinge-vpn')
+VPN_IPSEC_PSK = os.getenv('VPN_IPSEC_PSK', '')
+VPN_HUB_PUBLIC_HOST = os.getenv('VPN_HUB_PUBLIC_HOST', '103.139.163.150')
+VPN_RADIUS_LAN = os.getenv('VPN_RADIUS_LAN', '192.168.38.0/24')
+VPN_RADIUS_SERVER_IP = os.getenv('VPN_RADIUS_SERVER_IP', '192.168.38.2')

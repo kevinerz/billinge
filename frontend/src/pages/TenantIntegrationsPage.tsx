@@ -11,7 +11,8 @@ const TYPE_OPTIONS = [
   { label: 'WhatsApp', value: 'whatsapp' },
   { label: 'SMS', value: 'sms' },
   { label: 'Email', value: 'email' },
-  { label: 'VPN Hub', value: 'vpn_hub' },
+  // vpn_hub sengaja tidak di sini — kredensial VPN dikelola otomatis lewat
+  // halaman NAS (auto-provision ke CHR), bukan diisi manual di sini.
 ]
 
 export function TenantIntegrationsPage() {

@@ -84,6 +84,9 @@ export interface Nas {
   community: string | null
   description: string | null
   last_contact_at: string | null
+  via_vpn?: boolean // write-only: auto-provision VPN ke CHR saat create
+  vpn_username?: string | null
+  vpn_client_script?: string | null // di-render server-side, siap copas ke Mikrotik tenant
 }
 
 export type BillingCycle = 'monthly' | 'yearly'
