@@ -31,7 +31,7 @@ fi
 
 echo "==> installing packages"
 apt-get update
-apt-get install -y freeradius freeradius-mysql freeradius-utils mysql-client openssl
+apt-get install -y freeradius freeradius-mysql freeradius-utils mysql-client openssl git
 
 echo "==> deploying config/raddb over $FR_ETC"
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/clients.conf" "$FR_ETC/clients.conf"
