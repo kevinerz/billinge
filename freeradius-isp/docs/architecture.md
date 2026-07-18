@@ -408,12 +408,16 @@ doesn't have to lie about being a KTP), and `install_lat`/`install_lng`
 key, not a string-matching coincidence.** `radcheck`/`radreply` gained a
 nullable `subscriber_id` referencing `tenant_subscribers(id)` — nullable
 because `vouchers` (sql/014) are intentionally anonymous prepaid
-credentials with no human profile behind them at all. FreeRADIUS itself
-never dereferences this column (no query in `queries.conf` joins to
-`tenant_subscribers`), which is deliberate: it means subscriber PII (KTP,
-email, GPS) stays completely unreachable from the RADIUS-core DB account
-(see `scripts/provision_db_users.sh`) even though the tables are now
-formally linked.
+credentials with no human profile behind them at all.
+
+**Updated:** `policy.d/isp_subscriber` (see "Enforcing subscriber
+suspension" above) does now join `radcheck.subscriber_id` to
+`tenant_subscribers` — but only ever reads the `id`/`status` columns,
+via a column-level `GRANT SELECT (id, status)` in
+`scripts/provision_db_users.sh`, not a table-level grant. Every other
+column — KTP, email, phone, GPS — stays completely unreachable from the
+RADIUS-core DB account. This is a deliberately narrow, explicit exception
+to "FreeRADIUS never touches subscriber PII", not a blanket walk-back of it.
 
 ## Per-tenant integrations (`sql/017_tenant_integrations.sql`)
 

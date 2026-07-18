@@ -68,14 +68,22 @@ mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_ADMIN_USER" -p"$MYSQL_ROOT_PA
 	-- voucher redemption marking (isp_voucher_mark_redeemed)
 	GRANT SELECT, UPDATE ON ${MYSQL_DATABASE}.vouchers TO '${RADIUS_DB_USER}'@'${RADIUS_VM_IP}';
 
-	-- Everything else (platform_*, subscriber_*, users, password_resets,
-	-- audit_logs, notifications, tenant_billing_profiles, service_plans,
-	-- voucher_batches, tenant_integrations, ...) gets NO grant at all — not
-	-- even SELECT. That includes tenant_subscribers: radcheck/radreply have
-	-- a subscriber_id FK to it (sql/016) purely for the app layer to join
-	-- credential <-> human profile — FreeRADIUS itself never dereferences
-	-- it, so subscriber PII (KTP, email, GPS) and tenant_integrations'
-	-- live API keys/tokens stay completely out of the RADIUS process's reach.
+	-- Subscriber-suspend check (isp_subscriber_check_active) needs to read
+	-- ONLY tenant_subscribers.status (+ .id, referenced in the JOIN's ON
+	-- clause — MySQL column-level grants require every column touched
+	-- anywhere in the query, not just the SELECT list). Column-level, not
+	-- table-level: this is the one narrow exception to "FreeRADIUS never
+	-- touches tenant_subscribers" below, and it's deliberately scoped so
+	-- the RADIUS process still can never read a subscriber's KTP, email,
+	-- phone, address, or GPS pin — only the enum it needs to gate on.
+	GRANT SELECT (id, status) ON ${MYSQL_DATABASE}.tenant_subscribers TO '${RADIUS_DB_USER}'@'${RADIUS_VM_IP}';
+
+	-- Everything else (platform_*, users, password_resets, audit_logs,
+	-- notifications, tenant_billing_profiles, service_plans,
+	-- voucher_batches, tenant_integrations, and every OTHER column of
+	-- tenant_subscribers besides id/status above) gets NO grant at all —
+	-- not even SELECT. tenant_integrations' live API keys/tokens and every
+	-- subscriber PII field stay completely out of the RADIUS process's reach.
 
 	FLUSH PRIVILEGES;"
 
