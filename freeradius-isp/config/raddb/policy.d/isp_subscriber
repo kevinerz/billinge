@@ -1,0 +1,30 @@
+# Gates new logins for a suspended/terminated INDIVIDUAL subscriber —
+# distinct from policy.d/isp_tenant's isp_tenant_check_active, which only
+# gates the whole tenant. A tenant can be perfectly active while one of
+# its own subscribers is suspended for being personally overdue (see
+# billing/tasks.py::suspend_overdue_subscribers in isp-billing).
+#
+# Same rules as isp_tenant_check_active and for the same reasons: called
+# ONLY from authorize (never accounting/post-auth), so an already-open
+# session can still write its Interim-Update/Stop rows after the
+# subscriber gets suspended mid-session.
+#
+# Deliberately a no-op for hotspot vouchers: radcheck.subscriber_id is
+# NULL for those (sql/016_tenant_subscriber_details.sql — vouchers are
+# anonymous prepaid credentials with no subscriber profile at all), so the
+# JOIN below simply returns nothing and the reject is skipped.
+#
+# NOTE: policy.d/ files define policies directly at the top level — no
+# outer `policy { }` wrapper (see policy.d/isp_tenant for why).
+isp_subscriber_check_active {
+	update control {
+		&Tmp-String-0 := "%{sql: SELECT ts.status FROM tenant_subscribers ts INNER JOIN radcheck rc ON rc.subscriber_id = ts.id WHERE rc.username = '%{SQL-User-Name}' AND rc.tenant_id = '%{control:ISP-Tenant-Id}' LIMIT 1}"
+	}
+
+	if ((&control:Tmp-String-0 == "suspended") || (&control:Tmp-String-0 == "terminated")) {
+		update reply {
+			&Reply-Message := "Subscriber suspended"
+		}
+		reject
+	}
+}

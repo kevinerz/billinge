@@ -86,10 +86,35 @@ retroactively corrupt in-flight accounting.
 `tenants.status` (`trial`/`active`/`suspended`) is intentionally the single
 fast column this hot-path query reads — not `tenant_subscriptions.status`
 (`trialing`/`active`/`past_due`/`canceled`), which is richer billing state.
-The (not yet built) billing engine is what should read
-`tenant_subscriptions` and decide *when* to flip `tenants.status` to
-`suspended`; RADIUS itself only ever needs that final answer, on every
-single auth packet, as cheaply as possible.
+The billing engine (`isp-billing/billing/tasks.py`, Celery beat, daily) is
+what reads `tenant_subscriptions` and decides *when* to flip
+`tenants.status` to `suspended`; RADIUS itself only ever needs that final
+answer, on every single auth packet, as cheaply as possible.
+
+## Enforcing subscriber suspension
+
+A tenant can be fully active while one of its own subscribers is
+individually suspended for being personally overdue — `isp_tenant_check_active`
+alone can't catch that, since it only ever looks at the tenant as a whole.
+`policy.d/isp_subscriber`'s `isp_subscriber_check_active` closes this
+second gap: it joins `radcheck.subscriber_id` (added in
+`sql/016_tenant_subscriber_details.sql`) to `tenant_subscribers.status` for
+the authenticating username, and rejects with "Subscriber suspended" if
+that subscriber is `suspended` or `terminated`.
+
+Same rules as the tenant-level check and for the same reason: called only
+from `authorize`, never `accounting`/`post-auth`, so an in-flight session
+can still close out cleanly after the subscriber gets suspended mid-session.
+Deliberately a no-op for hotspot vouchers — `radcheck.subscriber_id` is
+`NULL` for those (vouchers are anonymous prepaid credentials with no
+subscriber profile), so the join simply matches nothing and the check
+passes through.
+
+The billing engine's `suspend_overdue_subscribers` task (Celery, daily) is
+what flips `tenant_subscribers.status` to `suspended` in the first place;
+paying the overdue invoice reactivates it immediately via the payment
+webhook (`billing/services.py::advance_subscription_on_payment`), not on
+the next day's cycle.
 
 ## Disconnecting an already-connected subscriber (CoA/Disconnect)
 
@@ -171,9 +196,12 @@ Three small companions to tables that already existed, not new features:
   `users` table (007), not a feature to bolt on later. Stores a token hash,
   never the raw token — same principle as `users.password_hash`.
 - **`notifications`** — a log of reminders/alerts actually sent (invoice
-  due, payment confirmed, tenant suspended), so a future billing engine can
-  check "did I already send this?" and so there's an audit trail
-  independent of whichever email/SMS/WhatsApp provider ends up wired in.
+  due, payment confirmed, tenant suspended), so the billing engine can
+  check "did I already send this?" once it's extended to actually send
+  reminders (today `billing/tasks.py` only transitions invoice/tenant/
+  subscriber status — it doesn't send anything yet) — and so there's an
+  audit trail independent of whichever email/SMS/WhatsApp provider ends
+  up wired in.
   `recipient_id`/`related_id` are intentionally polymorphic (no FK — a
   recipient is either a `users` row or a `tenant_subscribers` row); that
   distinction is enforced by the application, not the schema.
@@ -199,8 +227,9 @@ table.
 **Duplicate-billing safeguard:** `platform_invoices` now has a unique
 constraint on `(subscription_id, period_start)` and `subscriber_invoices` on
 `(subscriber_id, period_start)` — a data-integrity backstop so a bug in the
-(not-yet-built) billing engine firing twice can't double-invoice the same
-period. `NULL subscription_id` (one-off/manual invoices) stays unrestricted.
+billing engine (`isp-billing/billing/tasks.py`) firing twice can't
+double-invoice the same period. `NULL subscription_id` (one-off/manual
+invoices) stays unrestricted.
 
 ## Automated recurring billing for a tenant's own subscribers (`sql/012_subscriber_subscriptions.sql`)
 
@@ -413,9 +442,14 @@ legal financial record.
 
 ## Deferred to later phases (not implemented yet)
 
-- **The dashboard/API itself.** All of the above (billing, users, audit) is
-  schema only — no application layer reads or writes these tables yet.
-  Tenant/NAS management is still purely `scripts/*.sh` + direct SQL.
+- **The dashboard itself** (React+Vite+TypeScript) — the REST API and
+  billing engine it would call already exist (`isp-billing/`, same
+  monorepo: 10 API domains covering tenants/billing/subscribers/NAS/
+  webhooks/users/audit-logs/vouchers, plus a Celery+Redis billing engine
+  for recurring invoices and auto-suspend), but there's no UI on top of it
+  yet. Tenant/NAS management via this repo's `scripts/*.sh` is still
+  useful for one-off ops work, but day-to-day tenant onboarding now goes
+  through the Django API instead.
 - **True dynamic NAS onboarding.** `read_clients=yes` (currently used) loads
   the `nas` table only at FreeRADIUS startup — adding a NAS requires a HUP
   (`scripts/reload_freeradius.sh`). A later phase should switch to

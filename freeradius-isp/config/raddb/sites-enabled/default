@@ -41,6 +41,11 @@ authorize {
 	# need to close out normally via accounting (see policy.d/isp_tenant).
 	isp_tenant_check_active
 
+	# Same gate, one level down: an individual subscriber suspended for
+	# being personally overdue, even while their tenant stays active
+	# (see policy.d/isp_subscriber). No-op for hotspot vouchers.
+	isp_subscriber_check_active
+
 	chap
 	mschap
 

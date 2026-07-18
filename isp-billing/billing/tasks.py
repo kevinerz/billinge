@@ -155,13 +155,11 @@ def suspend_overdue_tenants():
 
 @shared_task
 def suspend_overdue_subscribers():
-    """Sama seperti suspend_overdue_tenants, level subscriber.
-    CATATAN: tenant_subscribers.status='suspended' BELUM digate di RADIUS
-    authorize (cuma tenants.status yang dicek saat ini, lihat
-    policy.d/isp_tenant) — jadi baris ini update status di dashboard/DB
-    tapi subscriber yang bersangkutan masih bisa login RADIUS sampai
-    policy RADIUS-nya diperluas buat cek status subscriber juga. Ditandai
-    sebagai gap, bukan tersembunyi."""
+    """Sama seperti suspend_overdue_tenants, level subscriber. Status ini
+    digate langsung di RADIUS authorize lewat policy.d/isp_subscriber
+    (isp_subscriber_check_active, freeradius-isp) — begitu baris ini
+    mengubah status jadi 'suspended', percobaan login RADIUS berikutnya
+    dari subscriber tersebut langsung ditolak."""
     threshold = timezone.localdate() - datetime.timedelta(days=GRACE_DAYS)
     subscriber_ids = list(
         SubscriberInvoice.objects.filter(status='overdue', due_date__lt=threshold)
