@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'tenants',
     'subscribers',
     'billing',
+    'nas',
 ]
 
 MIDDLEWARE = [

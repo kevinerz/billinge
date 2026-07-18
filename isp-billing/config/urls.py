@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from tenants.views import TenantViewSet
 from subscribers.views import TenantSubscriberViewSet
+from nas.views import NasViewSet
 from billing.views import (
     PlatformPlanViewSet, TenantSubscriptionViewSet, PlatformInvoiceViewSet, PlatformPaymentViewSet,
     ServicePlanViewSet, SubscriberSubscriptionViewSet, SubscriberInvoiceViewSet, SubscriberPaymentViewSet,
@@ -12,6 +13,7 @@ from billing.views import (
 router = DefaultRouter()
 router.register('tenants', TenantViewSet, basename='tenant')
 router.register('subscribers', TenantSubscriberViewSet, basename='subscriber')
+router.register('nas', NasViewSet, basename='nas')
 router.register('platform-plans', PlatformPlanViewSet, basename='platform-plan')
 router.register('tenant-subscriptions', TenantSubscriptionViewSet, basename='tenant-subscription')
 router.register('platform-invoices', PlatformInvoiceViewSet, basename='platform-invoice')
