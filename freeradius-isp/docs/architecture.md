@@ -64,8 +64,12 @@ subscribers are named (no `user@tenantslug` convention required).
 **Operational constraint:** this requires each Mikrotik's IP, as seen by the
 RADIUS server, to be globally unique across tenants. If tenant routers sit
 behind NAT with overlapping private ranges, this breaks — route them through
-a VPN hub (WireGuard/OpenVPN) with non-overlapping per-tenant address
-allocation before onboarding such a tenant.
+a VPN hub with non-overlapping per-tenant address allocation before onboarding
+such a tenant. **Implemented**: see
+[mikrotik-vpn-hub.md](mikrotik-vpn-hub.md) — the existing CHR gateway at
+`103.139.163.150` doubles as the hub (OpenVPN/L2TP-IPsec/SSTP, tenant traffic
+routed rather than NAT'd so FreeRADIUS still sees each tenant's real
+VPN-assigned IP, not the CHR's).
 
 ## Enforcing tenant suspension
 
