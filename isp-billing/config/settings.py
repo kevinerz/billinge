@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'nas',
     'webhooks',
     'auditlog',
+    'vouchers',
 ]
 
 MIDDLEWARE = [

@@ -7,6 +7,7 @@ from subscribers.views import TenantSubscriberViewSet
 from nas.views import NasViewSet
 from accounts.views import UserViewSet, MeView
 from auditlog.views import AuditLogViewSet
+from vouchers.views import VoucherBatchViewSet, VoucherViewSet
 from billing.views import (
     PlatformPlanViewSet, TenantSubscriptionViewSet, PlatformInvoiceViewSet, PlatformPaymentViewSet,
     ServicePlanViewSet, SubscriberSubscriptionViewSet, SubscriberInvoiceViewSet, SubscriberPaymentViewSet,
@@ -31,6 +32,8 @@ router.register('payment-gateway-events', PaymentGatewayEventViewSet, basename='
 router.register('payment-refunds', PaymentRefundViewSet, basename='payment-refund')
 router.register('users', UserViewSet, basename='user')
 router.register('audit-logs', AuditLogViewSet, basename='audit-log')
+router.register('voucher-batches', VoucherBatchViewSet, basename='voucher-batch')
+router.register('vouchers', VoucherViewSet, basename='voucher')
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
