@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from auditlog.helpers import log_action
 from common.permissions import IsSuperAdminOrTenantAdmin, scope_queryset_to_tenant
 
 from .models import Tenant, TenantIntegration
@@ -25,6 +26,20 @@ class TenantViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsSuperAdminOnly()]
         return super().get_permissions()
 
+    def perform_create(self, serializer):
+        tenant = serializer.save()
+        log_action(
+            self.request, 'tenant.created', entity_type='tenant', entity_id=tenant.id,
+            metadata={'slug': tenant.slug, 'name': tenant.name}, tenant_id=tenant.id,
+        )
+
+    def perform_destroy(self, instance):
+        log_action(
+            self.request, 'tenant.deleted', entity_type='tenant', entity_id=instance.id,
+            metadata={'slug': instance.slug}, tenant_id=instance.id,
+        )
+        instance.delete()
+
 
 class TenantIntegrationViewSet(viewsets.ModelViewSet):
     """
@@ -43,6 +58,11 @@ class TenantIntegrationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         if user.role == 'super_admin':
-            serializer.save()
+            integration = serializer.save()
         else:
-            serializer.save(tenant_id=user.tenant_id)
+            integration = serializer.save(tenant_id=user.tenant_id)
+        log_action(
+            self.request, 'tenant_integration.created', entity_type='tenant_integration', entity_id=integration.id,
+            metadata={'integration_type': integration.integration_type, 'provider': integration.provider},
+            tenant_id=integration.tenant_id,
+        )

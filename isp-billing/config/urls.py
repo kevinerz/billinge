@@ -5,6 +5,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from tenants.views import TenantViewSet, TenantIntegrationViewSet
 from subscribers.views import TenantSubscriberViewSet
 from nas.views import NasViewSet
+from accounts.views import UserViewSet, MeView
+from auditlog.views import AuditLogViewSet
 from billing.views import (
     PlatformPlanViewSet, TenantSubscriptionViewSet, PlatformInvoiceViewSet, PlatformPaymentViewSet,
     ServicePlanViewSet, SubscriberSubscriptionViewSet, SubscriberInvoiceViewSet, SubscriberPaymentViewSet,
@@ -27,10 +29,13 @@ router.register('subscriber-invoices', SubscriberInvoiceViewSet, basename='subsc
 router.register('subscriber-payments', SubscriberPaymentViewSet, basename='subscriber-payment')
 router.register('payment-gateway-events', PaymentGatewayEventViewSet, basename='payment-gateway-event')
 router.register('payment-refunds', PaymentRefundViewSet, basename='payment-refund')
+router.register('users', UserViewSet, basename='user')
+router.register('audit-logs', AuditLogViewSet, basename='audit-log')
 
 urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/me/', MeView.as_view(), name='me'),
     path('api/webhooks/platform-payments/<str:provider>/', PlatformPaymentWebhookView.as_view(), name='webhook-platform-payment'),
     path('api/webhooks/subscriber-payments/<str:tenant_slug>/<str:provider>/', SubscriberPaymentWebhookView.as_view(), name='webhook-subscriber-payment'),
     path('api/', include(router.urls)),

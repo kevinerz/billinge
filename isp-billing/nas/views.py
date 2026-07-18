@@ -3,6 +3,7 @@ import secrets as secrets_lib  # nama beda dari field model `secret`
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from auditlog.helpers import log_action
 from common.permissions import IsSuperAdminOrOwnTenant, IsSuperAdminOrTenantAdmin, scope_queryset_to_tenant
 
 from .models import Nas
@@ -31,6 +32,10 @@ class NasViewSet(viewsets.ModelViewSet):
         generated_secret = secrets_lib.token_urlsafe(24)
         user = self.request.user
         if user.role == 'super_admin':
-            serializer.save(secret=generated_secret)
+            nas = serializer.save(secret=generated_secret)
         else:
-            serializer.save(tenant_id=user.tenant_id, secret=generated_secret)
+            nas = serializer.save(tenant_id=user.tenant_id, secret=generated_secret)
+        log_action(
+            self.request, 'nas.created', entity_type='nas', entity_id=nas.id,
+            metadata={'nasname': nas.nasname, 'shortname': nas.shortname}, tenant_id=nas.tenant_id,
+        )
