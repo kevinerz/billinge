@@ -25,6 +25,7 @@ install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/clients.conf" "$F
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/dictionary.isp_tenant" "$FR_ETC/dictionary.isp_tenant"
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/policy.d/isp_tenant" "$FR_ETC/policy.d/isp_tenant"
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/policy.d/isp_voucher" "$FR_ETC/policy.d/isp_voucher"
+install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/policy.d/isp_subscriber" "$FR_ETC/policy.d/isp_subscriber"
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/sites-enabled/default" "$FR_ETC/sites-available/default"
 install -o freerad -g freerad -m 0640 "$REPO_ROOT/config/raddb/mods-enabled/sql" "$FR_ETC/mods-available/sql"
 install -o freerad -g freerad -m 0644 "$REPO_ROOT/config/raddb/mods-config/sql/main/mysql/queries.conf" \
