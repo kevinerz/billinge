@@ -99,6 +99,10 @@ SPECTACULAR_SETTINGS = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    # Akses langsung ke IP publik (via nginx reverse proxy di Webserver VM,
+    # port 80) untuk testing dashboard tanpa SSH tunnel. HTTP biasa, bukan
+    # HTTPS -- cukup untuk testing internal, jangan dianggap setup produksi.
+    "http://103.139.163.150",
 ]
 
 # Billing engine (Celery + Redis) — generate invoice berkala, tandai
