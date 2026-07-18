@@ -75,68 +75,33 @@ to each tenant alongside their credentials.
 1. Run `config/chr/add_tenant_vpn_client.rsc` on the CHR, editing the four
    variables at the top (tenant slug, VPN username/password, the fixed
    `10.201.0.x` address to assign — pick the next unused one).
-2. Send the tenant: their VPN username/password, the CA cert file, and
-   whichever client config below matches the protocol they'll use.
+2. Send the tenant a ready-to-run script for whichever protocol they'll
+   use — **this is the file the tenant actually copies onto their own
+   Mikrotik**, not something to retype by hand:
+   - `config/chr/tenant_client_openvpn.rsc` — recommended default
+   - `config/chr/tenant_client_sstp.rsc` — if their firewall blocks OpenVPN
+   - `config/chr/tenant_client_l2tp.rsc` — third option, needs the IPsec PSK too
+
+   Each file has two (OpenVPN/SSTP) or three (L2TP) `GANTI-...` placeholder
+   variables at the top for the tenant to fill in with the credentials from
+   step 1, then run via `/import file=<the-file>.rsc` on their own router —
+   Winbox → Files → upload the `.rsc` (and, for OpenVPN/SSTP, the
+   `billinge-ca.crt` from the step above) → Terminal → `/import`. Each
+   script prints its own next steps (checking the tunnel connected, then
+   adding the `/radius` client and `/ppp aaa` settings) when it finishes.
 3. Register the NAS via the dashboard/API once the tenant confirms their
    Mikrotik is connected: `POST /api/nas/` with `nasname` set to the
    `10.201.0.x` address from step 1 — same as any other NAS, the fact that
    it arrives over a VPN tunnel is invisible to FreeRADIUS from here on.
 
-## Tenant-side Mikrotik client config
-
-Give the tenant whichever one of these three matches their situation —
-all three authenticate against the same PPP secret from step 1 above.
-`add-default-route=no` on every variant is deliberate: this tunnel exists
-to reach the RADIUS server, not to become the tenant's general internet
-uplink.
-
-### OpenVPN (recommended default — simplest, most standard)
-
-```
-/certificate import file-name=billinge-ca.crt passphrase=""
-
-/interface ovpn-client add name=vpn-to-billinge connect-to=103.139.163.150 port=1194 \
-    protocol=udp user=<vpn-username> password=<vpn-password> \
-    cipher=aes256-cbc auth=sha256 verify-server-certificate=yes add-default-route=no
-
-/ip route add dst-address=192.168.38.0/24 gateway=vpn-to-billinge
-```
-
-### SSTP (if the tenant's firewall blocks OpenVPN's UDP port — SSTP rides
-TLS on port 443 and looks like ordinary HTTPS)
-
-```
-/certificate import file-name=billinge-ca.crt passphrase=""
-
-/interface sstp-client add name=vpn-to-billinge connect-to=103.139.163.150 \
-    user=<vpn-username> password=<vpn-password> \
-    verify-server-certificate=yes add-default-route=no
-
-/ip route add dst-address=192.168.38.0/24 gateway=vpn-to-billinge
-```
-
-### L2TP/IPsec (third option — needs the shared IPsec PSK from the admin
-in addition to the PPP username/password)
-
-```
-/interface l2tp-client add name=vpn-to-billinge connect-to=103.139.163.150 \
-    user=<vpn-username> password=<vpn-password> \
-    use-ipsec=yes ipsec-secret=<ipsec-psk-from-admin> add-default-route=no
-
-/ip route add dst-address=192.168.38.0/24 gateway=vpn-to-billinge
-```
-
-### Then, same as any directly-reachable Mikrotik
-
-```
-/radius add service=ppp address=192.168.38.2 secret=<nas-secret-from-dashboard> \
-    authentication-port=1812 accounting-port=1813
-/ppp aaa set use-radius=yes accounting=yes interim-update=5m
-```
-
-(`192.168.38.2` is the FreeRADIUS VM's real LAN address — reachable now
-because of the route added above, not because it's been given any special
-public-facing address.)
+All three client scripts set `add-default-route=no` deliberately — this
+tunnel exists to reach the RADIUS server, not to become the tenant's
+general internet uplink — and route only `192.168.38.0/24` (the RADIUS
+LAN) through the tunnel, ending with the same `/radius add
+address=192.168.38.2 ...` + `/ppp aaa set use-radius=yes` steps as any
+directly-reachable Mikrotik would use (`192.168.38.2` — FreeRADIUS's real
+LAN address — is reachable now purely because of the route the script
+added, not because it's been given any special public-facing address).
 
 ## Choosing a protocol
 
