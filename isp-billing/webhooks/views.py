@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from billing.models import PlatformPayment, SubscriberPayment
+from billing.services import advance_subscription_on_payment
 from tenants.models import Tenant, TenantIntegration
 
 from . import gateways
@@ -67,6 +68,9 @@ def _apply_webhook(payment, payment_type, provider, payload, headers):
                 invoice.status = 'paid'
                 invoice.paid_at = payment.paid_at
                 invoice.save(update_fields=['status', 'paid_at', 'updated_at'])
+                # Majukan periode langganan & pulihkan tenant/subscriber yang
+                # sempat disuspend billing engine — lihat billing/services.py
+                advance_subscription_on_payment(payment_type, invoice)
 
         if new_status in gateways.POST_SETTLEMENT_STATUSES:
             PaymentRefund.objects.create(

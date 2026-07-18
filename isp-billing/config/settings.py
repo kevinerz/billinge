@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -99,3 +100,18 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# Billing engine (Celery + Redis) — generate invoice berkala, tandai
+# overdue, auto-suspend tenant/subscriber yang telat bayar. Lihat
+# billing/tasks.py. REDIS_URL sama dipakai buat broker & result backend
+# karena skala masih kecil (puluhan-ratusan tenant) — pisahkan jadi dua URL
+# nanti kalau volume task sudah butuh itu.
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    'daily-billing-cycle': {
+        'task': 'billing.tasks.run_daily_billing_cycle',
+        'schedule': crontab(hour=1, minute=0),  # 01:00 WIB tiap hari
+    },
+}
