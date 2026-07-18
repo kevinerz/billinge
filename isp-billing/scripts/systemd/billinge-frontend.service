@@ -1,0 +1,14 @@
+[Unit]
+Description=Billinge Frontend (Vite dev server)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/billinge/frontend
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
+Restart=on-failure
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

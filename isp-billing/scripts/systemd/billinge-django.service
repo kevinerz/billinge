@@ -1,0 +1,14 @@
+[Unit]
+Description=Billinge Django (ISP Billing API)
+After=network.target mysql.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/billinge/isp-billing
+ExecStart=/opt/billinge/isp-billing/venv/bin/python manage.py runserver 0.0.0.0:8000
+Restart=on-failure
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

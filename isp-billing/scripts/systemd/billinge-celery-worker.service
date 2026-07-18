@@ -1,0 +1,15 @@
+[Unit]
+Description=Billinge Celery Worker
+After=network.target redis-server.service
+Requires=redis-server.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/billinge/isp-billing
+ExecStart=/opt/billinge/isp-billing/venv/bin/celery -A config worker -l info
+Restart=on-failure
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
