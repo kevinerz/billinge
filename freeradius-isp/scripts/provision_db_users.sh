@@ -72,10 +72,10 @@ mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_ADMIN_USER" -p"$MYSQL_ROOT_PA
 	-- ONLY tenant_subscribers.status (+ .id, referenced in the JOIN's ON
 	-- clause — MySQL column-level grants require every column touched
 	-- anywhere in the query, not just the SELECT list). Column-level, not
-	-- table-level: this is the one narrow exception to "FreeRADIUS never
-	-- touches tenant_subscribers" below, and it's deliberately scoped so
-	-- the RADIUS process still can never read a subscriber's KTP, email,
-	-- phone, address, or GPS pin — only the enum it needs to gate on.
+	-- table-level: this is the one narrow exception to the RADIUS process
+	-- otherwise never touching tenant_subscribers at all (see below), and
+	-- it is deliberately scoped so the RADIUS process still can never read
+	-- a subscriber's KTP, email, phone, address, or GPS pin.
 	GRANT SELECT (id, status) ON ${MYSQL_DATABASE}.tenant_subscribers TO '${RADIUS_DB_USER}'@'${RADIUS_VM_IP}';
 
 	-- Everything else (platform_*, users, password_resets, audit_logs,
