@@ -8,41 +8,30 @@ export interface NavItem {
   children?: NavItem[]
 }
 
+// Dashboard PLATFORM: kelola tenant, tagih tenant, sediakan infrastruktur
+// (VPN/NAS/IP). BUKAN urus pelanggan/voucher/tagihan-pelanggan tenant —
+// itu domain tenant (portal terpisah nanti). Semua super_admin.
 export const NAV_ITEMS: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', path: '/' },
-  { key: 'tenants', label: 'Tenants', path: '/tenants' },
-  { key: 'tenant-integrations', label: 'Integrasi Tenant', path: '/tenant-integrations', roles: ['super_admin', 'tenant_admin'] },
-  { key: 'subscribers', label: 'Pelanggan', path: '/subscribers' },
-  { key: 'nas', label: 'NAS / Mikrotik', path: '/nas', roles: ['super_admin', 'tenant_admin'] },
+  { key: 'tenants', label: 'Tenants', path: '/tenants', roles: ['super_admin'] },
+  { key: 'nas', label: 'NAS / VPN', path: '/nas', roles: ['super_admin'] },
   {
     key: 'billing',
-    label: 'Billing',
+    label: 'Tagihan Tenant',
+    roles: ['super_admin'],
     children: [
       { key: 'platform-plans', label: 'Paket Platform', path: '/billing/platform-plans' },
       { key: 'tenant-subscriptions', label: 'Langganan Tenant', path: '/billing/tenant-subscriptions' },
-      { key: 'platform-invoices', label: 'Invoice Platform', path: '/billing/platform-invoices' },
-      { key: 'platform-payments', label: 'Pembayaran Platform', path: '/billing/platform-payments' },
-      { key: 'service-plans', label: 'Paket Layanan', path: '/billing/service-plans' },
-      { key: 'subscriber-subscriptions', label: 'Langganan Pelanggan', path: '/billing/subscriber-subscriptions' },
-      { key: 'subscriber-invoices', label: 'Invoice Pelanggan', path: '/billing/subscriber-invoices' },
-      { key: 'subscriber-payments', label: 'Pembayaran Pelanggan', path: '/billing/subscriber-payments' },
+      { key: 'platform-invoices', label: 'Invoice Tenant', path: '/billing/platform-invoices' },
+      { key: 'platform-payments', label: 'Pembayaran Tenant', path: '/billing/platform-payments' },
     ],
   },
-  {
-    key: 'vouchers',
-    label: 'Voucher',
-    roles: ['super_admin', 'tenant_admin'],
-    children: [
-      { key: 'voucher-batches', label: 'Batch Voucher', path: '/vouchers/batches' },
-      { key: 'voucher-list', label: 'Daftar Voucher', path: '/vouchers/list' },
-    ],
-  },
-  { key: 'users', label: 'Pengguna', path: '/users', roles: ['super_admin', 'tenant_admin'] },
-  { key: 'audit-logs', label: 'Audit Log', path: '/audit-logs', roles: ['super_admin', 'tenant_admin'] },
+  { key: 'users', label: 'Pengguna', path: '/users', roles: ['super_admin'] },
+  { key: 'audit-logs', label: 'Audit Log', path: '/audit-logs', roles: ['super_admin'] },
   {
     key: 'webhooks',
     label: 'Webhook',
-    roles: ['super_admin', 'tenant_admin'],
+    roles: ['super_admin'],
     children: [
       { key: 'gateway-events', label: 'Event Gateway', path: '/webhooks/events' },
       { key: 'refunds', label: 'Refund', path: '/webhooks/refunds' },

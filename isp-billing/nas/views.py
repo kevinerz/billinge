@@ -5,7 +5,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from auditlog.helpers import log_action
-from common.permissions import IsSuperAdminOrOwnTenant, IsSuperAdminOrTenantAdmin, scope_queryset_to_tenant
+from common.permissions import IsSuperAdminOnly
 
 from .models import Nas, NasVpnCredential
 from .routeros import RouterOsError, add_vpn_secret, remove_vpn_secret
@@ -14,19 +14,17 @@ from .serializers import NasSerializer
 
 class NasViewSet(viewsets.ModelViewSet):
     """
-    Manajemen router Mikrotik. SENGAJA dibatasi tenant_admin ke atas untuk
-    SEMUA aksi termasuk lihat (bukan cuma tulis) — beda dari subscribers.
-    Alasan: (1) nas.secret itu kredensial RADIUS asli, (2) salah konfigurasi
-    NAS bisa bikin SELURUH pelanggan tenant itu terputus internetnya
-    sekaligus — risiko lebih tinggi dari sekadar data pelanggan biasa,
-    jadi tenant_staff tidak diberi akses sama sekali ke endpoint ini.
+    Manajemen router Mikrotik + VPN. SUPER_ADMIN SAJA — ini infrastruktur
+    yang DISEDIAKAN PLATFORM ke tenant (daftar NAS, setup VPN dial-in,
+    alokasi IP saat onboarding). Tenant tidak mengelola sendiri. nas.secret
+    itu kredensial RADIUS asli & salah konfigurasi NAS bisa memutus seluruh
+    pelanggan tenant sekaligus — jadi memang domain platform, bukan tenant.
     """
     serializer_class = NasSerializer
-    permission_classes = [IsAuthenticated, IsSuperAdminOrTenantAdmin, IsSuperAdminOrOwnTenant]
+    permission_classes = [IsAuthenticated, IsSuperAdminOnly]
 
     def get_queryset(self):
-        qs = Nas.objects.select_related('tenant', 'vpn').order_by('-id')
-        return scope_queryset_to_tenant(qs, self.request.user)
+        return Nas.objects.select_related('tenant', 'vpn').order_by('-id')
 
     def perform_create(self, serializer):
         # Secret digenerate baru & acak tiap NAS, tidak pernah dari input
